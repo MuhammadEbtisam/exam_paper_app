@@ -7,7 +7,6 @@ import pypandoc
 import time
 import urllib.parse as urlparse
 from PIL import Image
-from youtube_transcript_api import YouTubeTranscriptApi
 
 # Required installations:
 # pip install streamlit google-generativeai pypandoc pypdf2 pillow python-docx
@@ -175,3 +174,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
