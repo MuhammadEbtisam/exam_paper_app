@@ -4,6 +4,7 @@ import os
 import re
 import tempfile
 import pypandoc
+import time
 from PIL import Image
 
 # Required installations:
@@ -18,7 +19,9 @@ def get_system_prompt():
     prompt_path = "system_prompt.md"
     if os.path.exists(prompt_path):
         with open(prompt_path, "r", encoding="utf-8") as file:
-            return file.read()
+            content = file.read().strip()
+            if content:
+                return content
     return "You are an AI assistant. Analyze the provided documents carefully."
 
 def process_file(uploaded_file):
@@ -100,6 +103,16 @@ def main():
                     path = process_file(uf)
                     temp_paths.append(path)
                     g_file = genai.upload_file(path)
+                    
+                    # Wait for processing
+                    while g_file.state.name == "PROCESSING":
+                        time.sleep(2)
+                        g_file = genai.get_file(g_file.name)
+                        
+                    if g_file.state.name == "FAILED":
+                        st.error(f"File {uf.name} failed to process on Gemini's servers.")
+                        continue
+                        
                     gemini_files.append(g_file)
                 
                 # Generate Content
