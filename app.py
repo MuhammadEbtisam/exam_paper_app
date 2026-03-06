@@ -5,7 +5,6 @@ import re
 import tempfile
 import pypandoc
 import time
-import urllib.parse as urlparse
 from PIL import Image
 
 # Required installations:
@@ -40,22 +39,6 @@ def process_file(uploaded_file):
         tmp_path = tmp.name
         
     return tmp_path
-
-def get_youtube_transcript(url):
-    try:
-        parsed_url = urlparse.urlparse(url)
-        video_id = urlparse.parse_qs(parsed_url.query).get('v')
-        if not video_id:
-            video_id = parsed_url.path.split('/')[-1]
-        else:
-            video_id = video_id[0]
-            
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        transcript = " ".join([t['text'] for t in transcript_list])
-        return f"--- YOUTUBE VIDEO TRANSCRIPT ---\n{transcript}\n--------------------------------\n"
-    except Exception as e:
-        st.error(f"Error fetching YouTube transcript: {e}")
-        return None
 
 def convert_md_to_pdf_with_math(md_text):
     """
@@ -103,10 +86,10 @@ def main():
     st.expander("View System Prompt").markdown(system_prompt)
     
     uploaded_files = st.file_uploader("Upload Documents (PDF, Content, Images)", accept_multiple_files=True)
-    youtube_url = st.text_input("Enter a YouTube Video URL (Optional)")
+    transcript_text = st.text_area("Paste Transcript (Optional)", height=150, help="Paste raw text transcript here.")
     user_prompt = st.text_area("Specific Instructions/Questions (Optional)", help="Provide any specific questions or additional instructions for the AI.")
     
-    if st.button("Analyze with Gemini 2.5 Flash") and api_key and (uploaded_files or youtube_url or user_prompt.strip()):
+    if st.button("Analyze with Gemini 2.5 Flash") and api_key and (uploaded_files or transcript_text.strip() or user_prompt.strip()):
         with st.spinner("Analyzing with Gemini 2.5 Flash..."):
             try:
                 # Initialize Model
@@ -139,10 +122,8 @@ def main():
                 if user_prompt.strip():
                     prompt += f"\n\nUser's Specific Instructions:\n{user_prompt.strip()}"
                 
-                if youtube_url:
-                    yt_text = get_youtube_transcript(youtube_url)
-                    if yt_text:
-                        prompt += f"\n\n{yt_text}"
+                if transcript_text.strip():
+                    prompt += f"\n\n--- TRANSCRIPT ---\n{transcript_text.strip()}\n--------------------------------\n"
                 
                 response = model.generate_content([prompt] + gemini_files)
                 
@@ -174,4 +155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
